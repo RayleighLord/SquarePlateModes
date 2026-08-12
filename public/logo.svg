@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Square membrane mode icon">
+  <defs>
+    <linearGradient id="g" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#7ea4ff"/>
+      <stop offset="0.5" stop-color="#211017"/>
+      <stop offset="1" stop-color="#ffaaa5"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#030104"/>
+  <path d="M9 20c8 0 8 8 15 8s8-8 16-8 8 8 15 8v17c-7 0-8-8-15-8s-8 8-16 8-7-8-15-8Z" fill="url(#g)" stroke="#fff4df" stroke-opacity=".72" stroke-width="1.5"/>
+  <path d="M24 20v25M40 20v25" stroke="#fff4df" stroke-opacity=".45" stroke-width="1"/>
+</svg>
