@@ -7,6 +7,8 @@ import type {
 } from "../types";
 import { MODE_INDICES } from "../types";
 
+export const FUNDAMENTAL_CYCLE_SECONDS = 10;
+
 export const MIN_MODE_INDEX: ModeIndex = 1;
 export const MAX_MODE_INDEX: ModeIndex = 8;
 
@@ -61,6 +63,20 @@ export function frequency(
   sideLength = DEFAULT_WAVE_PARAMETERS.sideLength
 ): number {
   return angularFrequency(mode, waveSpeed, sideLength) / (2 * Math.PI);
+}
+
+/** Modal angular frequency relative to the fundamental (1,1) mode. */
+export function frequencyRatioToFundamental(mode: ModeSelection): number {
+  assertMode(mode);
+  return Math.sqrt((mode.nx ** 2 + mode.ny ** 2) / 2);
+}
+
+/**
+ * Illustrative animation period. Modal timing preserves the physical frequency
+ * ratios while deliberately slowing the fundamental mode for legibility.
+ */
+export function animationCycleSeconds(mode: ModeSelection): number {
+  return FUNDAMENTAL_CYCLE_SECONDS / frequencyRatioToFundamental(mode);
 }
 
 /**

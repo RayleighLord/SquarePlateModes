@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_MODE,
+  FUNDAMENTAL_CYCLE_SECONDS,
+  animationCycleSeconds,
   angularFrequency,
   createModeSelection,
   describeMode,
   displacement,
   frequency,
+  frequencyRatioToFundamental,
   interiorNodalPositions,
   isModeIndex,
   nodalPattern,
@@ -49,6 +52,26 @@ describe("square membrane wave model", () => {
 
     expect(omega11).toBeCloseTo(Math.PI * Math.sqrt(2), 12);
     expect(omega23 / omega11).toBeCloseTo(Math.sqrt(13 / 2), 12);
+  });
+
+  it("computes modal frequency ratios relative to the fundamental", () => {
+    expect(frequencyRatioToFundamental(createModeSelection(1, 1))).toBe(1);
+    expect(frequencyRatioToFundamental(createModeSelection(2, 3))).toBeCloseTo(
+      Math.sqrt(13 / 2),
+      12
+    );
+    expect(frequencyRatioToFundamental(createModeSelection(8, 8))).toBe(8);
+  });
+
+  it("provides frequency-scaled illustrative animation periods", () => {
+    const fundamental = createModeSelection(1, 1);
+    const mode23 = createModeSelection(2, 3);
+    const mode88 = createModeSelection(8, 8);
+
+    expect(FUNDAMENTAL_CYCLE_SECONDS).toBe(10);
+    expect(animationCycleSeconds(fundamental)).toBe(10);
+    expect(animationCycleSeconds(mode23)).toBeCloseTo(3.9223227028, 9);
+    expect(animationCycleSeconds(mode88)).toBe(1.25);
   });
 
   it("has equal frequency for modes related by swapping x and y", () => {

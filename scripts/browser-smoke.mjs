@@ -47,6 +47,7 @@ try {
   await assertInitialComposition(page);
   await assertModeSelection(page);
   await assertAllModes(page);
+  await assertRelativeModalTiming(page);
   await assertPlayback(page);
   await assertCameraAndCleanView(page);
   await assertPersistedPageLifecycle(page);
@@ -74,6 +75,19 @@ async function assertInitialComposition(page) {
   assert.equal(await page.locator("#plate-stage").getAttribute("data-grid-visible"), "true");
   assert.equal(await page.locator("#plate-stage").getAttribute("data-axis-markers"), "false");
   assert.equal(await page.locator("#plate-stage").getAttribute("data-camera-full-rotation"), "true");
+  assert.equal(await page.locator("#plate-stage").getAttribute("data-animation-timing"), "modal");
+  assert.ok(
+    Math.abs(
+      Number(await page.locator("#plate-stage").getAttribute("data-cycle-seconds")) -
+        10 / Math.sqrt(13 / 2)
+    ) < 1e-12
+  );
+  assert.ok(
+    Math.abs(
+      Number(await page.locator("#plate-stage").getAttribute("data-frequency-ratio")) -
+        Math.sqrt(13 / 2)
+    ) < 1e-12
+  );
   assert.match(await page.locator("#shape-math annotation").textContent(), /\\phi_\{n_x,n_y\}/);
   assert.match(
     await page.locator("#frequency-math annotation").textContent(),
@@ -81,7 +95,15 @@ async function assertInitialComposition(page) {
   );
   assert.equal(await page.locator("#boundary-note").textContent(), "FIXED BOUNDARIES");
   assert.equal(await page.locator(".mode-controls__header p").count(), 0);
-  assert.equal(await page.locator("#mode-math, #nodal-readout, #speed-select, #displacement-legend").count(), 0);
+  assert.equal(
+    await page
+      .locator(
+        "#mode-math, #nodal-readout, #speed-select, #displacement-legend, " +
+          "#frequency-scale-toggle"
+      )
+      .count(),
+    0
+  );
   const sliderType = await page.evaluate(() => ({
     ticks: Number.parseFloat(getComputedStyle(document.querySelector(".mode-selector__ticks")).fontSize),
     value: Number.parseFloat(getComputedStyle(document.querySelector(".mode-selector__value")).fontSize)
@@ -89,12 +111,15 @@ async function assertInitialComposition(page) {
   assert.ok(sliderType.ticks >= 12, "Slider tick numbers are too small");
   assert.ok(sliderType.value >= 16, "Selected mode numbers are too small");
 
-  const targets = await page.locator("#nx-slider, #ny-slider, #reset-camera, #ui-visibility-toggle, #animation-toggle").evaluateAll(
-    (elements) => elements.map((element) => {
+  const targets = await page
+    .locator(
+      "#nx-slider, #ny-slider, #reset-camera, #ui-visibility-toggle, " +
+        "#animation-toggle"
+    )
+    .evaluateAll((elements) => elements.map((element) => {
       const rect = element.getBoundingClientRect();
       return { id: element.id, tag: element.tagName, width: rect.width, height: rect.height };
-    })
-  );
+    }));
   for (const target of targets) {
     assert.ok(target.width >= 44, `${target.id} is narrower than 44px`);
     if (target.tag === "BUTTON") {
@@ -162,6 +187,20 @@ async function assertAllModes(page) {
       await waitForMembrane(page, nx, ny);
       assert.equal(await page.locator("#plate-stage").getAttribute("data-nodal-x-count"), `${nx - 1}`);
       assert.equal(await page.locator("#plate-stage").getAttribute("data-nodal-y-count"), `${ny - 1}`);
+      assert.equal(await page.locator("#plate-stage").getAttribute("data-animation-timing"), "modal");
+      const expectedRatio = Math.sqrt((nx ** 2 + ny ** 2) / 2);
+      assert.ok(
+        Math.abs(
+          Number(await page.locator("#plate-stage").getAttribute("data-frequency-ratio")) -
+            expectedRatio
+        ) < 1e-12
+      );
+      assert.ok(
+        Math.abs(
+          Number(await page.locator("#plate-stage").getAttribute("data-cycle-seconds")) -
+            10 / expectedRatio
+        ) < 1e-12
+      );
       if ((nx === 1 && ny === 1) || (nx === 8 && ny === 8)) {
         await page.screenshot({
           path: new URL(`mode-${nx}-${ny}-maximum.png`, artifactDir).pathname
@@ -173,6 +212,57 @@ async function assertAllModes(page) {
   await page.locator("#ny-slider").fill("3");
   await waitForMembrane(page, 2, 3);
   await toggle.click();
+}
+
+async function assertRelativeModalTiming(page) {
+  const stage = page.locator("#plate-stage");
+  const playbackToggle = page.locator("#animation-toggle");
+
+  await playbackToggle.click();
+  assert.equal(await stage.getAttribute("data-playing"), "false");
+  assert.ok(
+    Math.abs(Number(await stage.getAttribute("data-cycle-seconds")) - 10 / Math.sqrt(13 / 2)) < 1e-12
+  );
+  assert.match(
+    await page.locator("#plate-description").textContent(),
+    /exact relative modal-frequency scaling.*approximately 2\.55/
+  );
+
+  await page.locator("#nx-slider").fill("1");
+  await page.locator("#ny-slider").fill("1");
+  await waitForMembrane(page, 1, 1);
+  assert.equal(await stage.getAttribute("data-frequency-ratio"), "1");
+  assert.equal(await stage.getAttribute("data-cycle-seconds"), "10");
+  const fundamentalAdvance = await measurePhaseAdvance(page, 500);
+
+  await page.locator("#nx-slider").fill("8");
+  await page.locator("#ny-slider").fill("8");
+  await waitForMembrane(page, 8, 8);
+  assert.equal(await stage.getAttribute("data-frequency-ratio"), "8");
+  assert.equal(await stage.getAttribute("data-cycle-seconds"), "1.25");
+  const highestModeAdvance = await measurePhaseAdvance(page, 500);
+  assert.ok(
+    highestModeAdvance > 5 * fundamentalAdvance,
+    `Expected modal timing to advance (8,8) much faster than (1,1); got ` +
+      `${highestModeAdvance.toFixed(3)} versus ${fundamentalAdvance.toFixed(3)} radians`
+  );
+
+  await page.locator("#nx-slider").fill("2");
+  await page.locator("#ny-slider").fill("3");
+  await waitForMembrane(page, 2, 3);
+  await playbackToggle.click();
+}
+
+async function measurePhaseAdvance(page, durationMs) {
+  const stage = page.locator("#plate-stage");
+  const toggle = page.locator("#animation-toggle");
+  assert.equal(await stage.getAttribute("data-playing"), "false");
+  const initialPhase = Number(await stage.getAttribute("data-phase"));
+  await toggle.click();
+  await page.waitForTimeout(durationMs);
+  await toggle.click();
+  const finalPhase = Number(await stage.getAttribute("data-phase"));
+  return (finalPhase - initialPhase + 2 * Math.PI) % (2 * Math.PI);
 }
 
 async function assertPlayback(page) {
@@ -193,7 +283,7 @@ async function assertPlayback(page) {
   });
 
   assert.equal(await page.locator("#speed-select").count(), 0);
-  assert.equal(await stage.getAttribute("data-playback-rate"), "1");
+  assert.equal(await stage.getAttribute("data-playback-rate"), null);
   await toggle.click();
   await page.waitForTimeout(180);
   assert.ok(Math.abs(Number(await stage.getAttribute("data-phase")) - frozenPhase) > 0.05);
@@ -361,6 +451,10 @@ async function assertContextLossAndRetry(page) {
   assert.equal(await page.locator('[data-membrane-canvas="true"]').count(), 1);
   assert.equal(await page.locator("#plate-fallback").isHidden(), true);
   assert.equal(await stage.getAttribute("data-mode"), "2,3");
+  assert.equal(await stage.getAttribute("data-animation-timing"), "modal");
+  assert.ok(
+    Math.abs(Number(await stage.getAttribute("data-cycle-seconds")) - 10 / Math.sqrt(13 / 2)) < 1e-12
+  );
 }
 
 async function assertReducedMotion(browser, baseUrl) {
@@ -374,8 +468,16 @@ async function assertReducedMotion(browser, baseUrl) {
     await page.goto(baseUrl, { waitUntil: "networkidle" });
     await waitForMembrane(page, 2, 3);
     assert.equal(await page.locator("#plate-stage").getAttribute("data-playing"), "false");
+    assert.equal(await page.locator("#plate-stage").getAttribute("data-animation-timing"), "modal");
+    assert.ok(
+      Math.abs(
+        Number(await page.locator("#plate-stage").getAttribute("data-cycle-seconds")) -
+          10 / Math.sqrt(13 / 2)
+      ) < 1e-12
+    );
     assert.equal(await page.locator("#animation-toggle").getAttribute("aria-pressed"), "false");
     assert.equal(await page.locator("#animation-toggle").getAttribute("aria-label"), "Play vibration");
+    assert.equal(await page.locator("#frequency-scale-toggle").count(), 0);
     assert.deepEqual(errors, [], `Reduced-motion browser errors:\n${errors.join("\n")}`);
   } finally {
     await context.close();

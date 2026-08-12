@@ -1,5 +1,10 @@
 import { ThreeMembraneRenderer } from "./membrane";
-import { describeMode, nodalPattern } from "./math";
+import {
+  animationCycleSeconds,
+  describeMode,
+  frequencyRatioToFundamental,
+  nodalPattern
+} from "./math";
 import type { ControllerState, ModeSelection } from "./types";
 import { createInitialControllerState, reduceControllerState } from "./ui/controller";
 import { frequencyTex, modeShapeTex, renderMath } from "./ui/math";
@@ -67,13 +72,11 @@ export function startApp(): void {
           loading.hidden = true;
           stage.setAttribute("aria-busy", "false");
           renderer?.setMode(state.mode);
-          renderer?.setPlaybackRate(state.playbackRate);
           renderer?.setPlaying(state.isPlaying);
           announce(interactionStatus, "The three-dimensional membrane view was restored.");
         }
       });
       renderer.setMode(state.mode);
-      renderer.setPlaybackRate(state.playbackRate);
       renderer.setPageVisible(!document.hidden);
       renderer.setPlaying(state.isPlaying);
       loading.hidden = true;
@@ -109,9 +112,6 @@ export function startApp(): void {
     if (previous.isPlaying !== next.isPlaying) {
       renderer?.setPlaying(next.isPlaying);
     }
-    if (previous.playbackRate !== next.playbackRate) {
-      renderer?.setPlaybackRate(next.playbackRate);
-    }
     if (previous.isUiVisible !== next.isUiVisible) {
       renderUiVisibility(next.isUiVisible, previous.isUiVisible);
     }
@@ -120,9 +120,14 @@ export function startApp(): void {
 
   function renderMode(mode: ModeSelection): void {
     const pattern = nodalPattern(mode);
+    const timingDescription =
+      "Animation follows the exact relative modal-frequency scaling: this mode is approximately " +
+      `${frequencyRatioToFundamental(mode).toFixed(2)} times the fundamental frequency, with an ` +
+      `approximately ${animationCycleSeconds(mode).toFixed(2)}-second visual cycle. `;
     description.textContent =
       `Animated square-membrane mode n x ${mode.nx}, n y ${mode.ny}. ` +
       "Height and the Berlin blue-to-coral color scale show instantaneous signed displacement. " +
+      timingDescription +
       "A fine grid follows the deforming surface. " +
       `The subtle persistent overlay marks ${pattern.xCount} ${plural(pattern.xCount, "interior nodal line")} ` +
       `at constant x and ${pattern.yCount} ${plural(pattern.yCount, "interior nodal line")} at constant y. ` +

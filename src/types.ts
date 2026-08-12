@@ -11,10 +11,6 @@ export interface ModeSelection {
 /** A semantic alias used by renderers that consume a selected membrane mode. */
 export type MembraneMode = ModeSelection;
 
-export const PLAYBACK_RATES = [0.5, 1, 2] as const;
-
-export type PlaybackRate = (typeof PLAYBACK_RATES)[number];
-
 export interface WaveParameters {
   /** Side length L of the square domain. */
   readonly sideLength: number;
@@ -45,7 +41,6 @@ export interface NodalPattern {
 export interface ControllerState {
   readonly mode: ModeSelection;
   readonly isPlaying: boolean;
-  readonly playbackRate: PlaybackRate;
   readonly isUiVisible: boolean;
   readonly prefersReducedMotion: boolean;
 }

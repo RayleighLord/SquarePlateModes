@@ -3,16 +3,14 @@ import { describe, expect, it } from "vitest";
 import { createModeSelection } from "../math";
 import {
   createInitialControllerState,
-  nextPlaybackRate,
   reduceControllerState
 } from "../ui/controller";
 
 describe("immutable explorer controller", () => {
-  it("starts at mode (2, 3), playing at 1x, with the UI visible", () => {
+  it("starts at mode (2, 3), playing, with the UI visible", () => {
     expect(createInitialControllerState()).toEqual({
       mode: { nx: 2, ny: 3 },
       isPlaying: true,
-      playbackRate: 1,
       isUiVisible: true,
       prefersReducedMotion: false
     });
@@ -47,20 +45,6 @@ describe("immutable explorer controller", () => {
     ).toBe(initial);
   });
 
-  it("supports only the 0.5x, 1x, and 2x playback cycle", () => {
-    expect(nextPlaybackRate(0.5)).toBe(1);
-    expect(nextPlaybackRate(1)).toBe(2);
-    expect(nextPlaybackRate(2)).toBe(0.5);
-
-    const initial = createInitialControllerState();
-    const twice = reduceControllerState(initial, {
-      type: "set-playback-rate",
-      playbackRate: 2
-    });
-    expect(twice.playbackRate).toBe(2);
-    expect(reduceControllerState(twice, { type: "cycle-playback-rate" }).playbackRate).toBe(0.5);
-  });
-
   it("pauses immediately when reduced motion becomes preferred", () => {
     const initial = createInitialControllerState();
     const reduced = reduceControllerState(initial, {
@@ -85,16 +69,14 @@ describe("immutable explorer controller", () => {
     expect(hidden.isUiVisible).toBe(false);
   });
 
-  it("resets mode, rate, visibility, and playback while preserving motion preference", () => {
+  it("resets mode, visibility, and playback while preserving motion preference", () => {
     let state = createInitialControllerState({ prefersReducedMotion: true, mode: { nx: 8, ny: 7 } });
     state = reduceControllerState(state, { type: "set-ui-visible", isUiVisible: true });
-    state = reduceControllerState(state, { type: "set-playback-rate", playbackRate: 2 });
     state = reduceControllerState(state, { type: "reset" });
 
     expect(state).toEqual({
       mode: { nx: 2, ny: 3 },
       isPlaying: false,
-      playbackRate: 1,
       isUiVisible: true,
       prefersReducedMotion: true
     });

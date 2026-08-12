@@ -1,10 +1,8 @@
 import {
-  PLAYBACK_RATES,
   type ControllerState,
   type ModeAxis,
   type ModeIndex,
-  type ModeSelection,
-  type PlaybackRate
+  type ModeSelection
 } from "../types";
 import { createModeSelection, DEFAULT_MODE } from "../math";
 
@@ -18,8 +16,6 @@ export type ControllerAction =
   | { readonly type: "set-mode-index"; readonly axis: ModeAxis; readonly value: ModeIndex }
   | { readonly type: "set-playing"; readonly isPlaying: boolean }
   | { readonly type: "toggle-playing" }
-  | { readonly type: "set-playback-rate"; readonly playbackRate: PlaybackRate }
-  | { readonly type: "cycle-playback-rate" }
   | { readonly type: "set-ui-visible"; readonly isUiVisible: boolean }
   | { readonly type: "toggle-ui" }
   | { readonly type: "set-reduced-motion"; readonly prefersReducedMotion: boolean }
@@ -33,7 +29,6 @@ export function createInitialControllerState(
   return freezeState({
     mode: createModeSelection(mode.nx, mode.ny),
     isPlaying: !prefersReducedMotion,
-    playbackRate: 1,
     isUiVisible: true,
     prefersReducedMotion
   });
@@ -58,13 +53,6 @@ export function reduceControllerState(
         : freezeState({ ...state, isPlaying: action.isPlaying });
     case "toggle-playing":
       return freezeState({ ...state, isPlaying: !state.isPlaying });
-    case "set-playback-rate":
-      assertPlaybackRate(action.playbackRate);
-      return action.playbackRate === state.playbackRate
-        ? state
-        : freezeState({ ...state, playbackRate: action.playbackRate });
-    case "cycle-playback-rate":
-      return freezeState({ ...state, playbackRate: nextPlaybackRate(state.playbackRate) });
     case "set-ui-visible":
       return action.isUiVisible === state.isUiVisible
         ? state
@@ -86,12 +74,6 @@ export function reduceControllerState(
   }
 }
 
-export function nextPlaybackRate(current: PlaybackRate): PlaybackRate {
-  assertPlaybackRate(current);
-  const index = PLAYBACK_RATES.indexOf(current);
-  return PLAYBACK_RATES[(index + 1) % PLAYBACK_RATES.length] ?? PLAYBACK_RATES[0];
-}
-
 function withMode(
   state: Readonly<ControllerState>,
   mode: ModeSelection
@@ -101,12 +83,6 @@ function withMode(
     return state;
   }
   return freezeState({ ...state, mode: validated });
-}
-
-function assertPlaybackRate(value: number): asserts value is PlaybackRate {
-  if (!(PLAYBACK_RATES as readonly number[]).includes(value)) {
-    throw new RangeError(`playbackRate must be one of ${PLAYBACK_RATES.join(", ")}.`);
-  }
 }
 
 function freezeState(state: ControllerState): Readonly<ControllerState> {

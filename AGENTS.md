@@ -19,8 +19,10 @@ repository subpath.
 - Interior nodal lines are exactly `x = kL/nx` and `y = jL/ny`. Derive both the
   visible lines and their description from the spatial mode, never from the
   instantaneous animation phase.
-- Animation speed is illustrative and independent of modal frequency. Do not
-  label browser time as physical time.
+- Animation timing always preserves the exact modal-frequency ratio
+  `sqrt((nx^2 + ny^2) / 2)` relative to `(1,1)`, with a deliberately slow
+  10-second visual cycle for the fundamental. Do not label browser time as
+  physical time while `c` and `L` remain symbolic.
 - Color and height encode instantaneous signed displacement. Nodal lines,
   labels, and geometry must keep the view understandable without color alone.
 

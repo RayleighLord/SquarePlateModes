@@ -1,13 +1,13 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-import type { MembraneMode, PlaybackRate } from "../types";
+import { animationCycleSeconds, frequencyRatioToFundamental } from "../math";
+import type { MembraneMode } from "../types";
 import { createBerlinTexture } from "./berlin";
 
 const MESH_SEGMENTS = 128;
 const MAX_PIXEL_RATIO = 2;
 const MAX_DRAWING_BUFFER_PIXELS = 2_500_000;
-const CYCLE_SECONDS = 4;
 const TWO_PI = 2 * Math.PI;
 const DEFAULT_CAMERA_DIRECTION = new THREE.Vector3(1.28, 1.02, 1.38).normalize();
 const DEFAULT_CAMERA_DISTANCE = 2.15;
@@ -56,7 +56,6 @@ export class MembraneRenderer {
 
   private mode: MembraneMode = DEFAULT_MODE;
   private phase = 0;
-  private playbackRate: PlaybackRate = 1;
   private playing = false;
   private pageVisible = true;
   private contextLost = false;
@@ -166,7 +165,6 @@ export class MembraneRenderer {
     this.host.dataset.meshSegments = `${MESH_SEGMENTS}`;
     this.host.dataset.frame = "0";
     this.host.dataset.playing = "false";
-    this.host.dataset.playbackRate = "1";
     this.host.dataset.pageVisible = "true";
     this.host.dataset.amplitude = `${MEMBRANE_AMPLITUDE}`;
     this.host.dataset.gridVisible = "true";
@@ -198,16 +196,6 @@ export class MembraneRenderer {
     if (playing && this.pageVisible && !this.contextLost) {
       this.requestFrame();
     }
-  }
-
-  setPlaybackRate(rate: PlaybackRate): void {
-    if (this.destroyed) return;
-    if (rate !== 0.5 && rate !== 1 && rate !== 2) {
-      throw new RangeError(`Playback rate must be 0.5, 1, or 2; got ${String(rate)}`);
-    }
-    this.playbackRate = rate;
-    this.host.dataset.playbackRate = `${rate}`;
-    this.requestFrame();
   }
 
   setPageVisible(visible: boolean): void {
@@ -354,7 +342,9 @@ export class MembraneRenderer {
     if (this.playing) {
       if (this.previousFrameTime !== null) {
         const elapsedSeconds = Math.min(0.1, Math.max(0, (time - this.previousFrameTime) / 1000));
-        this.phase = (this.phase + (elapsedSeconds * TWO_PI * this.playbackRate) / CYCLE_SECONDS) % TWO_PI;
+        const cycleSeconds = animationCycleSeconds(this.mode);
+        this.phase =
+          (this.phase + (elapsedSeconds * TWO_PI) / cycleSeconds) % TWO_PI;
         this.uniforms.uPhase.value = this.phase;
         this.updatePhaseData();
       }
@@ -384,6 +374,13 @@ export class MembraneRenderer {
     this.host.dataset.mode = `${this.mode.nx},${this.mode.ny}`;
     this.host.dataset.nodalXCount = `${this.mode.nx - 1}`;
     this.host.dataset.nodalYCount = `${this.mode.ny - 1}`;
+    this.updateFrequencyData();
+  }
+
+  private updateFrequencyData(): void {
+    this.host.dataset.animationTiming = "modal";
+    this.host.dataset.cycleSeconds = `${animationCycleSeconds(this.mode)}`;
+    this.host.dataset.frequencyRatio = `${frequencyRatioToFundamental(this.mode)}`;
   }
 
   private updatePhaseData(): void {
