@@ -73,6 +73,7 @@ async function assertInitialComposition(page) {
   assert.equal(await page.locator("#plate-stage").getAttribute("data-nodal-y-count"), "2");
   assert.equal(await page.locator("#plate-stage").getAttribute("data-amplitude"), "0.09");
   assert.equal(await page.locator("#plate-stage").getAttribute("data-grid-visible"), "true");
+  assert.equal(await page.locator("#plate-stage").getAttribute("data-nodal-lines-visible"), "false");
   assert.equal(await page.locator("#plate-stage").getAttribute("data-axis-markers"), "false");
   assert.equal(await page.locator("#plate-stage").getAttribute("data-camera-full-rotation"), "true");
   assert.equal(await page.locator("#plate-stage").getAttribute("data-animation-timing"), "modal");
@@ -171,7 +172,10 @@ async function assertModeSelection(page) {
   await waitForMembrane(page, 2, 5);
   assert.match(await page.locator("#shape-math annotation").textContent(), /\\phi_\{n_x,n_y\}/);
   assert.equal(await page.locator("#plate-stage").getAttribute("data-nodal-y-count"), "4");
-  assert.match(await page.locator("#plate-description").textContent(), /4 interior nodal lines at constant y/);
+  assert.match(
+    await page.locator("#plate-description").textContent(),
+    /4 interior nodal lines at constant y; these are not separately drawn/
+  );
 
   await ny.fill("3");
   await waitForMembrane(page, 2, 3);
@@ -185,6 +189,10 @@ async function assertAllModes(page) {
     for (let ny = 1; ny <= 8; ny += 1) {
       await page.locator("#ny-slider").fill(`${ny}`);
       await waitForMembrane(page, nx, ny);
+      assert.equal(
+        await page.locator("#plate-stage").getAttribute("data-nodal-lines-visible"),
+        "false"
+      );
       assert.equal(await page.locator("#plate-stage").getAttribute("data-nodal-x-count"), `${nx - 1}`);
       assert.equal(await page.locator("#plate-stage").getAttribute("data-nodal-y-count"), `${ny - 1}`);
       assert.equal(await page.locator("#plate-stage").getAttribute("data-animation-timing"), "modal");
@@ -201,7 +209,7 @@ async function assertAllModes(page) {
             10 / expectedRatio
         ) < 1e-12
       );
-      if ((nx === 1 && ny === 1) || (nx === 8 && ny === 8)) {
+      if ((nx === 1 && ny === 1) || (nx === 3 && ny === 5) || (nx === 8 && ny === 8)) {
         await page.screenshot({
           path: new URL(`mode-${nx}-${ny}-maximum.png`, artifactDir).pathname
         });

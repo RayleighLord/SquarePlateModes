@@ -168,6 +168,7 @@ export class MembraneRenderer {
     this.host.dataset.pageVisible = "true";
     this.host.dataset.amplitude = `${MEMBRANE_AMPLITUDE}`;
     this.host.dataset.gridVisible = "true";
+    this.host.dataset.nodalLinesVisible = "false";
     this.host.dataset.axisMarkers = "false";
     this.host.dataset.cameraFullRotation = "true";
     this.host.setAttribute("aria-busy", "false");
@@ -479,23 +480,12 @@ const MEMBRANE_VERTEX_SHADER = /* glsl */ `
 
 const MEMBRANE_FRAGMENT_SHADER = /* glsl */ `
   uniform sampler2D uBerlin;
-  uniform float uNx;
-  uniform float uNy;
 
   varying vec2 vUv;
   varying float vDisplacement;
   varying vec3 vViewNormal;
 
-  const float PI = 3.141592653589793;
   const float GRID_DIVISIONS = 16.0;
-
-  float interiorNode(float wave, float coordinate) {
-    float waveWidth = max(fwidth(wave), 0.00001);
-    float line = 1.0 - smoothstep(0.2 * waveWidth, 1.05 * waveWidth, abs(wave));
-    float edgeDistance = min(coordinate, 1.0 - coordinate);
-    float boundaryMask = smoothstep(1.25 * fwidth(coordinate), 2.75 * fwidth(coordinate), edgeDistance);
-    return line * boundaryMask;
-  }
 
   float surfaceGrid(float coordinate) {
     float gridCoordinate = coordinate * GRID_DIVISIONS;
@@ -525,13 +515,6 @@ const MEMBRANE_FRAGMENT_SHADER = /* glsl */ `
     float grid = max(xGrid, yGrid);
     vec3 gridColor = sRGBTransferEOTF(vec4(0.72, 0.78, 0.85, 1.0)).rgb;
     vec3 color = mix(baseColor, gridColor, grid * 0.28);
-
-    float xNode = interiorNode(sin(PI * uNx * vUv.x), vUv.x);
-    float yNode = interiorNode(sin(PI * uNy * vUv.y), vUv.y);
-    // max() keeps line brightness constant where two nodal lines intersect.
-    float node = max(xNode, yNode);
-    vec3 nodeColor = sRGBTransferEOTF(vec4(0.34, 0.40, 0.48, 1.0)).rgb;
-    color = mix(color, nodeColor, node * 0.22);
 
     gl_FragColor = vec4(color, 1.0);
     #include <colorspace_fragment>

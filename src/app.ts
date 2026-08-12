@@ -129,8 +129,9 @@ export function startApp(): void {
       "Height and the Berlin blue-to-coral color scale show instantaneous signed displacement. " +
       timingDescription +
       "A fine grid follows the deforming surface. " +
-      `The subtle persistent overlay marks ${pattern.xCount} ${plural(pattern.xCount, "interior nodal line")} ` +
-      `at constant x and ${pattern.yCount} ${plural(pattern.yCount, "interior nodal line")} at constant y. ` +
+      `Mathematically, the mode has ${pattern.xCount} ${plural(pattern.xCount, "interior nodal line")} ` +
+      `at constant x and ${pattern.yCount} ${plural(pattern.yCount, "interior nodal line")} at constant y; ` +
+      "these are not separately drawn. " +
       "The pale perimeter is fixed at zero displacement.";
   }
 

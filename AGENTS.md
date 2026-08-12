@@ -16,14 +16,14 @@ repository subpath.
 - The normalized spatial mode is
   `phi = sin(nx*pi*x/L) sin(ny*pi*y/L)` and the angular frequency is
   `omega = (pi*c/L) sqrt(nx^2 + ny^2)`.
-- Interior nodal lines are exactly `x = kL/nx` and `y = jL/ny`. Derive both the
-  visible lines and their description from the spatial mode, never from the
-  instantaneous animation phase.
+- Interior nodal positions are exactly `x = kL/nx` and `y = jL/ny`. Retain them
+  as pure mathematical metadata, but do not draw a dedicated nodal-line overlay
+  on the membrane.
 - Animation timing always preserves the exact modal-frequency ratio
   `sqrt((nx^2 + ny^2) / 2)` relative to `(1,1)`, with a deliberately slow
   10-second visual cycle for the fundamental. Do not label browser time as
   physical time while `c` and `L` remain symbolic.
-- Color and height encode instantaneous signed displacement. Nodal lines,
+- Color and height encode instantaneous signed displacement. The surface grid,
   labels, and geometry must keep the view understandable without color alone.
 
 ## Architecture
